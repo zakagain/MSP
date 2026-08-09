@@ -19,6 +19,7 @@ Choose one of the two methods below to get started:
 1. Go to the **Releases** section of this GitHub repository.
 2. Download the latest `mac-space-period.exe` file.
 3. Double-click the downloaded file to run it.
+4. (Optional but reccomended:) Press `Win + R` and type in `shell:startup` and drag `mac-space-period.exe` into that folder to ensure it starts on boot.
 
 ### Method 2: Run the Raw Script (Recommended)
 *Perfect if you want to inspect, audit, or customize the code yourself.*
