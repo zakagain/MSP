@@ -339,6 +339,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 .nav-cta { text-decoration: none; }
 
 /* ─── Hero ────────────────────────────────────────────────────────── */
+.hero { position: relative; }
 .hero-inner { display: grid; justify-items: center; text-align: center; gap: var(--space-6); }
 .hero h1 { max-width: 22ch; }
 .hero-lead { max-width: 60ch; }
@@ -357,9 +358,10 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 }
 
 /* ─── Hero V: decorative characters down two diagonals ────────────── */
-/* A fixed band pinned to the top of the hero. Anchored to the hero's full
-   height instead, the characters landed behind the opaque Notepad window and
-   never showed. Sits behind the copy: z-index 0 against the copy's z-index 1. */
+/* A band pinned to the top of the hero. The script extends it past the demo
+   window and stops it just above the next section. It stays behind everything:
+   z-index 0 against the copy and demo at z-index 1. The CSS height is only a
+   no-JS fallback; the script replaces it with the measured endpoint. */
 .hero-v {
   position: absolute;
   inset: 0 0 auto;
@@ -830,16 +832,16 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   </div>
 </header>
 
-<!-- V-shaped background type: two diagonal runs of characters framing the hero
-     copy, from the top corners down toward the centre below the buttons. Purely
-     decorative and behind everything (aria-hidden, pointer-events: none). The
-     script fills it; with scripting off it simply stays empty. -->
-<div class="hero-v" id="hero-v" aria-hidden="true"></div>
-
 <main id="main">
 
   <!-- ═══ HERO ═══ -->
   <section class="band hero" id="top">
+    <!-- V-shaped background type: the outer margins filled with characters, from
+         the top corners down past the demo window to just above the next
+         section. Purely decorative and behind everything (aria-hidden,
+         pointer-events: none). The script fills it; with scripting off it
+         simply stays empty. -->
+    <div class="hero-v" id="hero-v" aria-hidden="true"></div>
     <div class="container hero-inner">
       <h1 class="hero-title" id="hero-title">Where Windows and Mac finally collide.</h1>
       <p class="lead hero-lead reveal">
@@ -1444,23 +1446,31 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
      diagonal. Each row is a run of characters starting hard against the outer
      edge of the viewport and stopping at that row's diagonal boundary, so the
      fields read as solid texture in the corners and the inside of the V is
-     left completely empty for the headline, the copy and the buttons.
+     left completely empty for the headline, copy, buttons, and demo window.
 
-     Reveal: top to bottom, and within a row outer edge inward, staggered across
-     ~4s. Each character flickers through printable ASCII for a beat after it
-     arrives, then freezes at low ambient opacity. Runs once. */
-  var V_BAND = 620;        /* must match .hero-v height in CSS */
-  var V_SETTLE = 0.16;     /* final opacity, within the brief's 0.1-0.2 */
-  var V_ROW_PITCH = 21;    /* px between rows */
-  var V_COL_PITCH = 13;    /* px between columns */
-  var V_TOP = 4;           /* % down the band where the first row sits */
-  var V_BOTTOM = 95;       /* % down the band where the last row sits */
-  var V_ROW_STAGGER = 140; /* ms between rows — this is what sets the length */
-  var V_COL_STAGGER = 5;   /* ms between columns within a row */
+     Reveal: top to bottom, and within a row outer edge inward, with the last
+     glyph arriving near 3.8 seconds. Each character flickers through printable
+     ASCII for a beat after it arrives, then freezes at low ambient opacity.
+     Runs once. */
+  var V_TARGET_FILL_MS = 3800; /* the last glyph should arrive around 3.8 seconds */
   var V_FLICKER_MS = 900;  /* how long one character flickers after arriving */
   var V_TICK_MS = 60;      /* how often characters swap while flickering */
-  var V_GAP = 28;          /* clear space kept beside the hero copy */
+  var V_START_DELAY = 120; /* pause before the first row, so load settles first */
+  var V_COL_STAGGER = 5;   /* ms between columns within a row */
+  var V_ROW_PITCH = 21;    /* px between rows */
+  var V_COL_PITCH = 13;    /* px between columns */
+  var V_TOP_PAD = 24;      /* px from the band top to the first row */
+  var V_BOTTOM_PAD = 28;   /* px from the last row to the measured endpoint */
+  var V_END_GAP = 56;      /* px above the next section's divider */
+  var V_DEMO_GAP = 80;     /* px below the demo window required by the endpoint */
+  var V_GAP = 28;          /* clear space kept beside protected content */
   var V_MIN = 34;          /* below this much margin, the V stands down */
+  var V_MIN_FLOOR = 320;   /* below this band height, the field is not worthwhile */
+  var V_GLYPH_HALF = 6;    /* nominal half-width of a settled glyph */
+  var V_TEXT_HALF = 10;    /* nominal half-height used when testing protected rows */
+  var V_MIN_CELLS = 120;   /* below this cell count, the field is not worthwhile */
+  var V_MAX_CELLS = 2200;  /* above this, widen the grid rather than add nodes */
+  var vActiveUntil = 0;    /* performance.now() time through which the reveal is live */
   /* How far the diagonal travels inward at its lowest. The fraction is what
      guarantees clearance from the copy; the caps keep the run a diagonal on a
      wide screen, and keep it off vertical between roughly 980 and 1120px where
@@ -1489,132 +1499,264 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 
   function vNow() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
 
+  /* Where the background stops. The band begins at the hero's top and ends a
+     fixed distance above the next section's top border, so it passes behind the
+     demo without running into "Type like you always do." The demo's own bottom
+     supplies a floor when section measurements are transitional, and the hero's
+     height supplies a ceiling so the field cannot leak into the next band. */
+  function vFloorTarget() {
+    var how = document.getElementById('how');
+    var hero = document.querySelector('.hero');
+    var demoEl = document.getElementById('demo');
+    if (!how || !hero || !vBand) return null;
+    var bandTop = vBand.getBoundingClientRect().top;
+    var floor = how.getBoundingClientRect().top - bandTop - V_END_GAP;
+    if (demoEl) {
+      floor = Math.max(
+        floor,
+        demoEl.getBoundingClientRect().bottom - bandTop + V_DEMO_GAP
+      );
+    }
+    /* Keep the field inside the hero while still honoring the measured target. The
+       ceiling uses the same gap so rounding or a transitional measurement cannot
+       push the last row onto the divider. */
+    floor = Math.min(floor, hero.clientHeight - V_END_GAP);
+    if (!(floor >= V_MIN_FLOOR)) return null;
+    return floor;
+  }
+
   /* The diagonal. Measured, not guessed: the headline is centred and its width
      changes with the viewport, so a fixed track walks straight into the copy on a
-     narrower screen. Returns the band's left edge and how far the boundary
-     travels inward by the time it reaches the bottom row. */
-  function vTrack() {
+     narrower screen. The headline and demo window have different widths and
+     vertical positions, so their margins are considered separately; individual
+     rows are then clamped against each protected rectangle. */
+  function vTrack(floor) {
     var inner = document.querySelector('.hero-inner');
-    if (!inner || !vBand) return null;
+    if (!inner || !vBand || !(floor > 0)) return null;
     var bandW = vBand.clientWidth;
     var bandBox = vBand.getBoundingClientRect();
-    /* the widest thing in the hero copy, which is what the field must clear */
-    var copyW = 0;
-    var els = inner.querySelectorAll('.hero-title, .hero-lead, .hero-actions');
-    for (var i = 0; i < els.length; i++) {
-      copyW = Math.max(copyW, els[i].getBoundingClientRect().width);
+    var textEls = Array.prototype.slice.call(
+      inner.querySelectorAll('.hero-title, .hero-lead, .hero-actions')
+    );
+    var protectedEls = textEls.slice();
+    if (demo) protectedEls.push(demo);
+    var headerLeft = bandW, headerRight = 0;
+    var demoLeft = bandW, demoRight = 0;
+    var blocks = [];
+    var headerCount = 0;
+    var demoCount = 0;
+
+    function local(el) {
+      var r = el.getBoundingClientRect();
+      return {
+        top: r.top - bandBox.top,
+        bottom: r.bottom - bandBox.top,
+        left: r.left - bandBox.left,
+        right: r.right - bandBox.left
+      };
     }
-    var centre = bandBox.left + bandW / 2;
-    var margin = (centre - copyW / 2) - bandBox.left - V_GAP;
-    if (margin < V_MIN) return null; /* no margin to work in: stand down */
-    /* The copy's own box, in band coordinates. A single global margin is not
-       enough on its own: at around 1000px the headline wraps onto an extra line,
-       so the copy gets taller at exactly the width where the travel floor is
-       pushing the diagonal furthest in. Rows are clamped against this box
-       individually, which is what makes "never overlaps" a guarantee rather
-       than a consequence of the numbers happening to work out. */
-    var box = { top: 1e9, bottom: -1e9, left: 1e9, right: -1e9 };
-    for (var j = 0; j < els.length; j++) {
-      var r = els[j].getBoundingClientRect();
-      if (r.top < box.top) box.top = r.top;
-      if (r.bottom > box.bottom) box.bottom = r.bottom;
-      if (r.left < box.left) box.left = r.left;
-      if (r.right > box.right) box.right = r.right;
+
+    for (var i = 0; i < textEls.length; i++) {
+      var textBox = local(textEls[i]);
+      blocks.push(textBox);
+      headerCount++;
+      if (textBox.left < headerLeft) headerLeft = textBox.left;
+      if (textBox.right > headerRight) headerRight = textBox.right;
     }
-    box.top -= bandBox.top; box.bottom -= bandBox.top;
-    box.left -= bandBox.left; box.right -= bandBox.left;
+    if (demo) {
+      var demoBox = local(demo);
+      blocks.push(demoBox);
+      demoCount++;
+      if (demoBox.left < demoLeft) demoLeft = demoBox.left;
+      if (demoBox.right > demoRight) demoRight = demoBox.right;
+    }
+    if (!blocks.length) return null;
+
+    var headerMargin = headerCount
+      ? Math.min(headerLeft, bandW - headerRight) - V_GAP
+      : -Infinity;
+    var demoMargin = demoCount
+      ? Math.min(demoLeft, bandW - demoRight) - V_GAP
+      : -Infinity;
+    if (headerMargin < V_MIN && demoMargin < V_MIN) return null;
     return {
-      left: bandBox.left,
       width: bandW,
-      box: box,
-      travel: Math.max(V_MIN_TRAVEL, Math.min(margin * V_REACH, V_MAX_TRAVEL))
+      floor: floor,
+      blocks: blocks,
+      travel: Math.max(
+        V_MIN_TRAVEL,
+        Math.min(Math.max(headerMargin, demoMargin) * V_REACH, V_MAX_TRAVEL)
+      )
     };
   }
 
   /* How far into the margin this row may be filled, measured from the band's
-     outer edge. Normally that is just the diagonal. But any row whose band
-     overlaps the hero copy is clamped hard against the copy's edge, which is
-     what guarantees clearance at every width — including the narrow ones where
-     the copy is tall and the travel floor would otherwise carry the field into
-     it. Rows clear of the copy keep the full diagonal and open out toward the
-     bottom, so the field is widest where there is genuinely nothing to protect. */
+     outer edge. Normally that is just the diagonal. But any row sharing a
+     horizontal band with protected content is clamped hard against the nearest
+     protected edge, which is what guarantees clearance at every width — the
+     demo window also matters here, because the field now reaches its vertical
+     range. Rows clear of protected content keep the full diagonal and open out
+     toward the bottom, so the field is widest where there is genuinely nothing
+     to protect. The nominal glyph half-width is subtracted from a clamp so the
+     centre of the last glyph cannot cross into the protected gap. */
   function vBoundary(track, side, y, e) {
     var boundary = V_GAP + e * track.travel;
-    var half = V_ROW_PITCH / 2;
-    var overlapsCopy = y + half > track.box.top && y - half < track.box.bottom;
-    if (!overlapsCopy) return boundary;
-    var limit = side === 0
-      ? track.box.left - V_GAP          /* distance from the left edge to the copy */
-      : track.width - track.box.right - V_GAP;
-    return Math.min(boundary, Math.max(0, limit));
+    for (var i = 0; i < track.blocks.length; i++) {
+      var block = track.blocks[i];
+      if (y + V_TEXT_HALF > block.top && y - V_TEXT_HALF < block.bottom) {
+        var limit = side === 0
+          ? block.left - V_GAP
+          : track.width - block.right - V_GAP;
+        boundary = Math.min(boundary, Math.max(0, limit - V_GLYPH_HALF));
+      }
+    }
+    return Math.max(0, boundary);
+  }
+
+  /* Count one grid arrangement without emitting glyphs. This is shared by density
+     control and by the geometry signature, so the design that is measured is
+     always the design that would be built. */
+  function vCountGrid(track, bandH, rowPitch, colPitch) {
+    var usable = bandH - V_TOP_PAD - V_BOTTOM_PAD;
+    if (!(usable >= rowPitch)) return null;
+    var rows = Math.floor(usable / rowPitch);
+    var total = 0;
+    var lastColumns = 1;
+    for (var side = 0; side < 2; side++) {
+      for (var r = 0; r <= rows; r++) {
+        var t = rows < 1 ? 0 : r / rows;
+        var y = V_TOP_PAD + r * rowPitch;
+        var boundary = vBoundary(track, side, y, t);
+        var cols = boundary <= V_GLYPH_HALF
+          ? 0
+          : Math.floor((boundary - V_GLYPH_HALF) / colPitch) + 1;
+        total += cols;
+        if (r === rows) lastColumns = Math.max(lastColumns, cols);
+      }
+    }
+    return {
+      rows: rows,
+      rowPitch: rowPitch,
+      colPitch: colPitch,
+      total: total,
+      lastColumns: lastColumns
+    };
+  }
+
+  /* Choose a grid that fits the measured band. Very wide or very tall viewports
+     can otherwise produce several thousand spans; widening the grid preserves
+     the shape at a bounded node count. */
+  function vLayout(track, bandH) {
+    var rowPitch = V_ROW_PITCH;
+    var colPitch = V_COL_PITCH;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      var grid = vCountGrid(track, bandH, rowPitch, colPitch);
+      if (!grid || grid.total < V_MIN_CELLS) return null;
+      if (grid.total <= V_MAX_CELLS || attempt === 2) return grid;
+      var scale = Math.sqrt(grid.total / V_MAX_CELLS);
+      rowPitch *= scale;
+      colPitch *= scale;
+    }
+    return null;
   }
 
   /* The full set of cells, in build order. Row-major: every row from the top,
      and within a row every column from the outer edge inward. Each cell carries
-     the character it will settle on and the moment it arrives. */
-  function vCells(track) {
-    var span = (V_BOTTOM - V_TOP) / 100 * V_BAND;
-    var rows = Math.floor(span / V_ROW_PITCH);
+     the character it will settle on and the moment it arrives. The row delay is
+     derived from the measured row count so the final cell still arrives near
+     the end of the target window when the band grows. */
+  function vCells(track, bandH, layout) {
     var out = [];
-    var n = 0;
+    var maxAt = 0;
+    var rowDelay = layout.rows > 1
+      ? (V_TARGET_FILL_MS - V_START_DELAY - (layout.lastColumns - 1) * V_COL_STAGGER) / layout.rows
+      : 0;
+    rowDelay = Math.max(0, rowDelay);
     for (var side = 0; side < 2; side++) {
-      for (var r = 0; r <= rows; r++) {
-        var t = rows < 1 ? 0 : r / rows;
-        var y = V_TOP / 100 * V_BAND + r * V_ROW_PITCH;
-        /* Straight ramp. A smoothstep here reads as a near-vertical edge for the
-           top half and only opens out near the bottom; a constant angle is what
-           actually looks like the arm of a V. */
-        var e = t;
-        var boundary = vBoundary(track, side, y, e);
-        var cols = Math.floor(boundary / V_COL_PITCH);
-        for (var c = 0; c <= cols; c++) {
-          var x = (c + 0.5) * V_COL_PITCH;
-          out.push({
-            x: side === 0 ? track.left + x : track.left + track.width - x,
-            y: y,
-            char: vPick(),
-            at: n * 0  /* placeholder, set below */
-          });
-          n++;
+      for (var r = 0; r <= layout.rows; r++) {
+        var t = layout.rows < 1 ? 0 : r / layout.rows;
+        var y = V_TOP_PAD + r * layout.rowPitch;
+        var boundary = vBoundary(track, side, y, t);
+        var cols = boundary <= V_GLYPH_HALF
+          ? 0
+          : Math.floor((boundary - V_GLYPH_HALF) / layout.colPitch) + 1;
+        var base = V_START_DELAY + r * rowDelay;
+        for (var c = 0; c < cols; c++) {
+          var x = side === 0
+            ? (c + 0.5) * layout.colPitch
+            : track.width - (c + 0.5) * layout.colPitch;
+          var at = base + c * V_COL_STAGGER;
+          out.push({ side: side, x: x, y: y, char: vPick(), at: at });
+          if (at > maxAt) maxAt = at;
         }
       }
     }
-    /* Arrival order is row-major across both sides: row r of both fields, then
-       row r+1. Delay is derived from the row and column so both fields fill
-       together rather than the left one finishing before the right begins. */
-    var perRow = [];
-    var idx = 0;
-    for (var s2 = 0; s2 < 2; s2++) {
-      for (var r2 = 0; r2 <= rows; r2++) {
-        var t2 = rows < 1 ? 0 : r2 / rows;
-        var e2 = t2;
-        var y2 = V_TOP / 100 * V_BAND + r2 * V_ROW_PITCH;
-        var b2 = vBoundary(track, s2, y2, e2);
-        perRow.push(Math.floor(b2 / V_COL_PITCH) + 1);
-      }
+    return { cells: out, rows: layout.rows, maxAt: maxAt };
+  }
+
+  /* Describe the geometry without building DOM. Used after fonts load: if layout
+     has shifted the endpoint or clamps, rebuild silently; if nothing changed,
+     leave the completed field alone rather than flashing it. */
+  function vDescribeKey() {
+    var floor = vFloorTarget();
+    if (!floor) return 'none';
+    var track = vTrack(floor);
+    if (!track) return 'none';
+    var bandH = vBand.clientHeight;
+    var layout = vLayout(track, bandH);
+    if (!layout) return 'none';
+    return [
+      Math.round(floor),
+      Math.round(bandH),
+      Math.round(track.travel),
+      layout.rows,
+      layout.total,
+      track.blocks.map(function (b) {
+        return [b.top, b.bottom, b.left, b.right].map(Math.round).join(',');
+      }).join(';')
+    ].join('|');
+  }
+
+  function vSettleGeometry() {
+    if (!vBand) return;
+    if (vNow() < vActiveUntil) {
+      /* Do not interrupt the initial flicker to fix a few pixels; check again
+         once the reveal has had time to finish. */
+      window.setTimeout(vSettleGeometry, Math.max(60, vActiveUntil - vNow()));
+      return;
     }
-    var k = 0;
-    for (var s3 = 0; s3 < 2; s3++) {
-      for (var r3 = 0; r3 <= rows; r3++) {
-        var base = 120 + r3 * V_ROW_STAGGER;
-        var count = perRow[r3];
-        for (var c3 = 0; c3 < count; c3++, k++) {
-          out[k].at = base + c3 * V_COL_STAGGER;
-        }
-      }
-    }
-    return { cells: out, rows: rows };
+    var key = vDescribeKey();
+    if (key && key === vBand.dataset.vKey) return;
+    vBuild(false);
   }
 
   /* Build the field. animate = false rebuilds it in place on a resize, already
      settled, without replaying four seconds of flicker at someone mid-scroll. */
   function vBuild(animate) {
     if (!vBand) return;
-    var track = vTrack();
-    if (!track) { vBand.textContent = ''; return; }
-
-    vSeed = 0x5f3a91;
-    var built = vCells(track);
+    var floor = vFloorTarget();
+    if (!floor) {
+      vBand.textContent = '';
+      vBand.dataset.vKey = 'none';
+      vActiveUntil = 0;
+      return;
+    }
+    vBand.style.height = floor + 'px';
+    var track = vTrack(floor);
+    if (!track) {
+      vBand.textContent = '';
+      vBand.dataset.vKey = 'none';
+      vActiveUntil = 0;
+      return;
+    }
+    var layout = vLayout(track, vBand.clientHeight);
+    if (!layout) {
+      vBand.textContent = '';
+      vBand.dataset.vKey = 'none';
+      vActiveUntil = 0;
+      return;
+    }
+    var built = vCells(track, vBand.clientHeight, layout);
     var frag = document.createDocumentFragment();
 
     for (var i = 0; i < built.cells.length; i++) {
@@ -1631,9 +1773,18 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
     vBand.textContent = '';
     vBand.appendChild(frag);
 
-    var last = built.cells.length
-      ? built.cells[built.cells.length - 1].at + V_FLICKER_MS
-      : 0;
+    var last = built.maxAt + V_FLICKER_MS;
+    vBand.dataset.vKey = [
+      Math.round(floor),
+      Math.round(vBand.clientHeight),
+      Math.round(track.travel),
+      built.rows,
+      built.cells.length,
+      track.blocks.map(function (b) {
+        return [b.top, b.bottom, b.left, b.right].map(Math.round).join(',');
+      }).join(';')
+    ].join('|');
+    vActiveUntil = animate && !reduced.matches ? vNow() + last + 120 : 0;
 
     if (!animate || reduced.matches) {
       /* CSS parks every cell at V_SETTLE and there is nothing to flicker */
@@ -1647,14 +1798,20 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
        touched, so the cost tracks how many are mid-reveal rather than how many
        exist — a full field is far too many nodes to rewrite on every tick. */
     var start = vNow();
-    var settled = 0;
     (function tick() {
       var elapsed = vNow() - start;
       for (var k = 0; k < built.cells.length; k++) {
         var cell = built.cells[k];
-        if (cell.done) continue;
-        if (elapsed >= cell.at) cell.el.classList.add('is-set');
-        if (elapsed < cell.at || elapsed > cell.at + V_FLICKER_MS) continue;
+        if (cell.done || elapsed < cell.at) continue;
+        cell.el.classList.add('is-set');
+        if (elapsed > cell.at + V_FLICKER_MS) {
+          /* Freeze this cell now. Waiting for the whole field to finish and
+             then rewriting every cell at once caused the visible second
+             scramble after the cascade had already ended. */
+          cell.el.textContent = cell.char;
+          cell.done = true;
+          continue;
+        }
         cell.el.textContent = V_GLYPHS[Math.floor(Math.random() * V_GLYPHS.length)];
       }
       if (elapsed > last) {
@@ -1711,8 +1868,17 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   }
 
   function wire() {
+    /* Measure the editor before laying out the background field: its pinned
+       height moves the following section, and the V endpoint is measured from
+       that section. Building the background first would freeze a stale target. */
+    fitEditor();
     splitTitle();
     vBuild(true);
+    /* Webfonts can rewrap the headline after the first paint, moving both the
+       protected margins and the endpoint. Recheck silently rather than replay. */
+    if (document.fonts && document.fonts.ready && typeof document.fonts.ready.then === 'function') {
+      document.fonts.ready.then(function () { vSettleGeometry(); });
+    }
 
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (entries) {
@@ -1760,9 +1926,9 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
       resizeTimer = window.setTimeout(function () {
         if (running()) replay();
         else if (!autoPlayed) fitEditor();
-        /* The V's track is measured from the copy, so a resize can invalidate
-           it. Re-place without re-animating: the characters keep whatever they
-           settled on, they just move to the new track. */
+        /* The V's geometry is measured from live layout, so a resize can invalidate
+           it. Rebuild without re-animating: the characters keep whatever they
+           settled on and simply take up the new field. */
         vBuild(false);
       }, 200);
     });
@@ -1806,7 +1972,6 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
       });
     }
 
-    fitEditor();
   }
 
   /* Last-resort guard: if anything above throws, the page still reads. */
