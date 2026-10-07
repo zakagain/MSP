@@ -1,4 +1,4 @@
-# Mac-Space-Period (MSP)
+# Mac Space Period (MSP)
 
 
 A lightweight AutoHotkey v2 script that brings the macOS/iOS double-tap spacebar shortcut to Windows. Double-tapping the spacebar quickly inserts a period followed by a space to seamlessly start a new sentence.
@@ -27,7 +27,7 @@ Choose one of the two methods below to get started:
 2. Download the `mac-space-period.ahk` file from this repository.
 3. Double-click the `.ahk` file to run it.
 
-### Run on Startup (Optional)
+### Run on Startup (Optional but highly recommended)
 
 If you want the script to run automatically every time you turn on your PC:
 1. Press `Win + R` to open the Run dialog.
