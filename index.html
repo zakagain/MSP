@@ -133,8 +133,8 @@
   --motion-base: 200ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
-  --container-max: 1200px;
-  --container-gutter-desktop: 24px;
+  --container-max: 1400px;
+  --container-gutter-desktop: 40px;
   --container-gutter-tablet: 16px;
   --container-gutter-phone: 12px;
 }
@@ -339,11 +339,10 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 .nav-cta { text-decoration: none; }
 
 /* ─── Hero ────────────────────────────────────────────────────────── */
-.hero-inner { display: grid; justify-items: center; text-align: center; gap: var(--space-5); }
-.hero h1 { max-width: 20ch; }
-.hero-lead { max-width: 56ch; }
-.hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3); margin-block-start: var(--space-4); }
-.hero-meta { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--space-2) var(--space-3); margin-block-start: var(--space-2); }
+.hero-inner { display: grid; justify-items: center; text-align: center; gap: var(--space-6); }
+.hero h1 { max-width: 22ch; }
+.hero-lead { max-width: 60ch; }
+.hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3); margin-block-start: var(--space-5); }
 .pill {
   display: inline-flex;
   align-items: center;
@@ -355,6 +354,47 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   line-height: 1.6;
   color: var(--text-secondary);
   background: var(--tint);
+}
+
+/* ─── Hero V: decorative characters down two diagonals ────────────── */
+/* A fixed band pinned to the top of the hero. Anchored to the hero's full
+   height instead, the characters landed behind the opaque Notepad window and
+   never showed. Sits behind the copy: z-index 0 against the copy's z-index 1. */
+.hero-v {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 620px;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  contain: layout style;
+}
+/* One character per cell. left/top come from the script: the grid is measured
+   against the hero copy, so the fields always fill exactly the margin that is
+   actually free. No will-change here — the field is hundreds of nodes, and a
+   compositor hint on each would cost far more than the opacity change it saves. */
+.hero-v-c {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: clamp(13px, 1.15vw, 18px);
+  line-height: 1;
+  color: var(--fg-2);
+  white-space: pre;
+  opacity: 0;
+}
+@keyframes v-settle {
+  to { opacity: 0.16; }
+}
+/* No animation-delay here: the script adds .is-set at each cell's own arrival
+   time, and a CSS delay on top of that would start every fade twice as late as
+   intended — the reveal took half its allotted length and the stagger smeared. */
+.hero-v-c.is-set {
+  animation: v-settle 420ms var(--ease-standard) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-v-c { animation: none !important; opacity: 0.16; }
 }
 .demo { margin-block-start: var(--space-12); max-width: 900px; margin-inline: auto; }
 .demo-caption {
@@ -375,8 +415,12 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 .win {
   position: relative;
   background: var(--surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--elev-window);
+  border-radius: 12px;          /* macOS window radius, not the 16px page radius */
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.06),
+    0 1px 2px rgba(19, 19, 22, 0.05),
+    0 12px 28px -10px rgba(19, 19, 22, 0.22),
+    0 32px 64px -32px rgba(19, 19, 22, 0.18);
   overflow: hidden;
 }
 .win-bar {
@@ -384,15 +428,26 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: var(--space-3);
-  padding: 10px var(--space-4);
-  background: var(--tint);
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  background: linear-gradient(180deg, #f7f7f7, #ececec);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
 }
 .lights { display: flex; gap: 8px; }
-.light { display: block; width: 12px; height: 12px; border-radius: 50%; }
+/* The real thing: 12px dots in the genuine system colours, each with a hairline
+   and a highlight so they read as lit glass rather than flat circles. */
+.light {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
 .light.close { background: var(--dot-close); }
 .light.min { background: var(--dot-min); }
 .light.zoom { background: var(--dot-zoom); }
-.win-title { font-size: var(--text-base); font-weight: 600; color: var(--fg-2); white-space: nowrap; }
+/* 13px semibold, centred in the bar — macOS title-bar type, not body copy */
+.win-title { font-size: 13px; font-weight: 600; color: #4a4a4a; white-space: nowrap; }
 .win-bar-end { display: flex; justify-content: flex-end; }
 
 /* the notepad: a blank white document, prose set in the body face */
@@ -401,8 +456,10 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   /* The script pins this to the measured height of the FINISHED paragraph
      before the run starts, so the window is its final size on frame one and
      never resizes while text appears. Without JS it falls back to a floor. */
+  /* No min-height: the script pins this to the measured height of the finished
+     line, which is one line of text now. A floor left over from the old
+     paragraph opened a void under the text — most of the window was blank. */
   height: var(--editor-h, auto);
-  min-height: 150px;
   margin: 0;
   padding: var(--space-6) var(--space-6);
   /* The demo is the argument for the product, so the document is set large
@@ -491,6 +548,18 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 }
 .spacebar .cap { font-size: var(--text-base); font-weight: 500; color: var(--text-secondary); transition: color var(--motion-fast) var(--ease-standard); }
 .spacebar.is-down { transform: translateY(2px); background: var(--tint-strong); }
+/* the tap itself: a soft accent bloom under and around the key */
+.spacebar.is-lit {
+  background: color-mix(in oklab, var(--accent), white 88%);
+  box-shadow:
+    0 0 0 2px color-mix(in oklab, var(--accent), transparent 42%),
+    0 0 18px color-mix(in oklab, var(--accent), transparent 55%),
+    var(--elev-raised);
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard),
+    box-shadow 140ms var(--ease-standard);
+}
 /* the key announces itself before it is used, then holds its ground while it
    waits for the second tap */
 .spacebar::after {
@@ -616,7 +685,11 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 .download-inner .lead { max-width: 50ch; }
 .builds { width: 100%; margin-block-start: var(--section-y-desktop); border-top: 1px solid var(--border); }
 .build { border-bottom: 1px solid var(--border); }
-.build-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4); padding-block: var(--space-6); }
+/* The download heading above is centred, and that alignment inherits down. The
+   two stacked lines sit in one shrink-wrapped box, so without this the wider
+   meta line sets the box width and "MSP Portable" gets centred inside it —
+   leaving it sitting noticeably right of "Windows 10 and 11" beneath it. */
+.build-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4); padding-block: var(--space-6); text-align: left; }
 .build-name { display: block; font-family: var(--font-display); font-size: var(--text-xl); font-weight: 600; line-height: 1.3; }
 .build-meta { display: block; margin-block-start: var(--space-1); font-size: var(--text-sm); color: var(--text-secondary); }
 .build-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
@@ -630,7 +703,13 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 .site-foot { border-top: 1px solid var(--border); padding-block: var(--space-8); }
 .foot-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-5); }
 .foot-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-5); }
+/* Flex centring, not just min-height. Both are flex items, so they blockify —
+   and a block <a> lays its text out at the top of the box while a block <button>
+   vertically centres its own content. Left alone, "Back to top" sat 10px lower
+   than the links next to it. Centring both puts them on one line. */
 .foot-links a, .foot-links button {
+  display: flex;
+  align-items: center;
   font-size: var(--text-sm);
   color: var(--text-secondary);
   background: none;
@@ -701,7 +780,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   .demo { margin-block-start: var(--space-8); }
   /* The clamp already shrinks the document as the viewport narrows; these
      overrides only loosen the padding around it. */
-  .editor { min-height: 132px; padding: var(--space-5) var(--space-4); }
+  .editor { padding: var(--space-5) var(--space-4); }
   .keys { padding: var(--space-4); }
   .build-row { align-items: flex-start; }
   .build-actions { width: 100%; }
@@ -743,13 +822,19 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
     <a class="nav-brand" href="#top">MSP<span class="brand-tag">for Windows</span></a>
     <nav aria-label="Primary">
       <ul class="nav-links">
-        <li><a href="#how">How it works</a></li>
-        <li><a href="#gestures">The gesture</a></li>
+        <li><a href="#how">Features</a></li>
+        <li><a href="#gestures">How It Works</a></li>
       </ul>
     </nav>
-    <a class="btn btn-primary nav-cta" href="#download">Get the build</a>
+    <a class="btn btn-primary nav-cta" href="#download">Download</a>
   </div>
 </header>
+
+<!-- V-shaped background type: two diagonal runs of characters framing the hero
+     copy, from the top corners down toward the centre below the buttons. Purely
+     decorative and behind everything (aria-hidden, pointer-events: none). The
+     script fills it; with scripting off it simply stays empty. -->
+<div class="hero-v" id="hero-v" aria-hidden="true"></div>
 
 <main id="main">
 
@@ -764,12 +849,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
       </p>
       <div class="hero-actions reveal">
         <a class="btn btn-primary" href="#download">Get MSP for Windows</a>
-        <button class="btn btn-secondary" type="button" id="watch-btn">Watch the space bar</button>
-      </div>
-      <div class="hero-meta reveal">
-        <span class="pill">Windows 10 &amp; 11</span>
-        <span class="pill">Any keyboard</span>
-        <span class="pill">Sits quietly in the tray</span>
+        <button class="btn btn-secondary" type="button" id="demo-btn">See Demo</button>
       </div>
     </div>
 
@@ -782,7 +862,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
               <span class="light min"></span>
               <span class="light zoom"></span>
             </span>
-            <span class="win-title">Untitled — Notepad</span>
+            <span class="win-title">Untitled.md</span>
             <span class="win-bar-end">
               <button class="btn btn-ghost" type="button" id="replay-btn" aria-describedby="demo-hint">Replay</button>
             </span>
@@ -790,10 +870,10 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 
           <div class="editor-wrap" id="editor-wrap">
             <p class="editor" id="editor">
-              <!-- The finished paragraph, as real text: with scripting off the
-                   demo is simply a notepad that already says the thing. The
-                   script clears this and types it back. -->
-              <span class="editor-text" id="editor-text">The house at the end of the lane had stood empty since the spring, and the postman still walked the same round every morning out of pure habit. the gate swung open onto a yard gone entirely to weeds, and a dog barked at nothing at all behind the hedge</span><span class="caret" aria-hidden="true"></span>
+              <!-- The finished line, as real text: with scripting off the demo is
+                   simply a document that already says the thing. The script
+                   clears this and types it back. -->
+              <span class="editor-text" id="editor-text">Tap space twice. And watch the period appear.</span><span class="caret" aria-hidden="true"></span>
             </p>
           </div>
 
@@ -807,7 +887,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
               </span>
               <span class="key-ghost">alt</span>
             </div>
-            <span class="key-hint">tap twice at the end of a sentence</span>
+            <span class="key-hint">tap twice at the end of the sentence</span>
           </div>
 
           <!-- A live region would fire six announcements through an eight-second
@@ -818,14 +898,15 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
             <span id="demo-state">Ready</span>
           </p>
           <p class="sr-only">
-            Animation: a notepad window types a sentence. When the sentence ends,
-            the space bar is tapped twice — the second tap is the one MSP catches —
-            and MSP types the full stop and the following space itself. The next
-            sentence then continues typing without the hands leaving the keyboard.
+            Animation: a window types the words "Tap space twice". The space bar is
+            then tapped twice — the second tap is the one MSP catches — and MSP
+            types the full stop and the following space itself. The next sentence
+            continues typing without the hands leaving the keyboard, and the
+            animation repeats.
           </p>
         </div>
         <p class="demo-caption" id="demo-hint">
-          <span>One sentence gets typed, MSP adds the full stop, and the writing carries straight on. It runs once — press Replay, or click the window, to watch it again.</span>
+          <span>A sentence gets typed, the space bar is tapped twice, and MSP types the full stop for you. It loops — press Replay to restart it, or click the window to stop.</span>
         </p>
       </div>
     </div>
@@ -976,7 +1057,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
           <div class="build-row">
             <span>
               <span class="build-name">MSP Portable</span>
-              <span class="build-meta">Windows 10 and 11 · 64-bit · runs from a folder</span>
+              <span class="build-meta">Windows 10 and 11 · 64-bit · sits in your tray</span>
             </span>
             <span class="build-actions">
               <!-- ▼ DOWNLOAD LINK — edit the href below to point at your file.
@@ -1012,8 +1093,8 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   <div class="container foot-inner">
     <a class="nav-brand" href="#top">MSP<span class="brand-tag">for Windows</span></a>
     <div class="foot-links">
-      <a href="#how">How it works</a>
-      <a href="#gestures">The gesture</a>
+      <a href="#how">Features</a>
+      <a href="#gestures">How It Works</a>
       <button type="button" id="to-top">Back to top</button>
     </div>
     <span class="foot-name">Mac Space Period</span>
@@ -1035,20 +1116,24 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   var statusBox = document.getElementById('win-status');
   var stateText = document.getElementById('demo-state');
   var replayBtn = document.getElementById('replay-btn');
-  var watchBtn = document.getElementById('watch-btn');
+  var demoBtn = document.getElementById('demo-btn');
   var heroTitle = document.getElementById('hero-title');
 
   var autoPlayed = false;   /* has the demo run, or been asked to? */
-  var wantWatch = false;    /* replay on arrival, rather than on visibility */
-  var watchTimer = 0;
+  var wantDemo = false;     /* replay on arrival, rather than on visibility */
+  var demoTimer = 0;
+  var demoOnScreen = true;  /* gates the loop while the window is off screen */
 
-  /* A paragraph that has nothing to do with MSP — the words are only there to
-     be typed. The break lands where a full stop belongs, which is the whole
-     trick. Trimmed to keep the gesture arriving about five seconds in; a demo
-     nobody reaches the end of teaches nothing. */
-  var PART_ONE = 'The house at the end of the lane had stood empty since the spring, and the postman still walked the same round every morning out of pure habit';
-  var PART_TWO = 'the gate swung open onto a yard gone entirely to weeds, and a dog barked at nothing at all behind the hedge';
-  var FULL = PART_ONE + '. ' + PART_TWO;
+  /* The script. Short on purpose: the whole point is the period appearing in one
+     place, and a paragraph that takes ten seconds to arrive buries it.
+
+     TAIL is written lowercase. The capital on "And" is not typed by hand — it is
+     applied by typeChar() because the previous character was a full stop, which
+     is the behaviour being demonstrated. Typing it as "And" in the source would
+     make the demo claim something the code never does. */
+  var PART_ONE = 'Tap space twice';
+  var TAIL = 'and watch the period appear.';
+  var FULL = 'Tap space twice. And watch the period appear.';
 
   /* Cadence. A flat 22ms per character reads as a machine; what makes typing
      look like typing is the unevenness — the word gaps, the breath after a
@@ -1059,6 +1144,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   var COMMA_MS = 90;       /* a breath after a comma */
   var SENTENCE_MS = 150;   /* a beat on the last character of a sentence */
   var SEED = 0x2f6e2b1;    /* fixed, so every replay is identical */
+  var V_HOLD = 2600;      /* how long the finished line rests before looping */
 
   /* ---- the text buffer ---------------------------------------------- */
   /* Text is only ever APPENDED. The previous version rebuilt the whole
@@ -1076,12 +1162,23 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
     textEl.appendChild(wordEl);
   }
 
+  /* The last non-space thing that landed in the document. Drives the sentence
+     handling: a letter after a full stop is capitalised. Spaces are deliberately
+     skipped rather than recorded — MSP inserts ". " as a pair, so tracking the
+     space would leave lastChar as ' ' by the time the next letter arrives and
+     the capitalisation would never fire. */
+  var lastChar = '';
+
   function typeChar(ch, cls) {
+    /* capitalise the first letter of a new sentence, the way a word processor
+       would — the demo asserts this, so it has to actually do it */
+    if (!cls && /[a-z]/.test(ch) && lastChar === '.') ch = ch.toUpperCase();
     if (ch === ' ') {
       wordEl = null;
       wordNode = null;
       textEl.appendChild(document.createTextNode(' '));
-      return;
+      return;   /* a space is not what a sentence is made of */
+
     }
     if (cls) {
       /* its own span, so the full stop MSP typed can be marked on its own */
@@ -1091,16 +1188,19 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
       s.className = cls;
       s.textContent = ch;
       textEl.appendChild(s);
+      lastChar = ch;
       return;
     }
     if (!wordEl) openWord();
     wordNode.appendData(ch);
+    lastChar = ch;
   }
 
   function resetText() {
     textEl.textContent = '';
     wordEl = null;
     wordNode = null;
+    lastChar = '';
   }
 
   /* The whole paragraph, already laid out. Used to measure the editor and to
@@ -1138,8 +1238,11 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   }
 
   /* ---- space bar taps ---------------------------------------------- */
+  /* Press the virtual key. is-lit is a separate class from is-down so the glow
+     can linger a moment after the key comes back up — a keypress that flashes
+     for 80ms and leaves nothing behind is easy to miss. */
   function tapDown(n) {
-    spacebar.classList.add('is-down');
+    spacebar.classList.add('is-down', 'is-lit');
     var r = ripples[n];
     r.classList.remove('go');
     void r.offsetWidth;
@@ -1149,7 +1252,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   function tapUp() { spacebar.classList.remove('is-down'); }
 
   function clearKey() {
-    spacebar.classList.remove('is-down', 'is-armed', 'is-hit', 'is-inviting');
+    spacebar.classList.remove('is-down', 'is-lit', 'is-armed', 'is-hit', 'is-inviting');
   }
 
   /* ---- the timeline ------------------------------------------------ */
@@ -1186,14 +1289,15 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
     }]);
 
     /* the sentence gets written */
-    t = 300;
+    /* Step 1 — the first sentence is typed by hand. */
+    t = 420;
     t = typeOut(steps, t, PART_ONE);
-    t += 240;
+    t += 320;
 
-    /* the sentence is over: say so, and point at the key */
+    /* Step 2 — the sentence is over. Point at the key, then take two taps. */
     steps.push([t, function () {
       spacebar.classList.add('is-inviting');
-      setStatus('Sentence ends here — tap space twice', 'busy');
+      setStatus('Sentence ends — tap space twice', 'busy');
     }]);
     t += 620;
     steps.push([t, function () {
@@ -1201,43 +1305,49 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
       spacebar.classList.add('is-armed');
     }]);
 
-    /* first tap: still just a space, exactly as it is without MSP */
     steps.push([t, function () {
       tapDown(0);
-      setStatus('One tap — that is still a space', 'busy');
+      setStatus('One tap — still just a space', 'busy');
     }]);
-    t += 78;
+    t += 88;
     steps.push([t, function () { tapUp(); }]);
-    t += 74;
+    t += 84;
 
-    /* second tap: this is the one MSP catches */
     steps.push([t, function () {
       tapDown(1);
       spacebar.classList.remove('is-armed');
       spacebar.classList.add('is-hit');
-      setStatus('Second tap — MSP has it', 'hit');
+      setStatus('Two taps — MSP has it', 'hit');
     }]);
-    t += 78;
+    t += 88;
     steps.push([t, function () { tapUp(); }]);
-    t += 180;
+    t += 200;
 
-    /* the payoff, marked so it cannot pass for another keystroke */
+    /* Step 3 — the full stop appears, and the next letter capitalises itself. */
     steps.push([t, function () {
       typeChar('.', 'msp');
-      setStatus('MSP typed the full stop and the space', 'done');
+      setStatus('MSP typed the full stop', 'done');
     }]);
-    t += 150;
+    t += 170;
     steps.push([t, function () { typeChar(' '); }]);
-    t += 250;
+    t += 140;
 
-    /* and the writing carries straight on */
-    t = typeOut(steps, t, PART_TWO);
-    t += 400;
+    /* Step 4 — the rest of the line, straight through. */
+    t = typeOut(steps, t, TAIL);
+    t += 520;
+
+    /* Step 5 — hold, then run it again. */
     steps.push([t, function () {
       win.classList.add('is-done');
       clearKey();
-      setStatus('Done — press Replay to watch it again', 'done');
+      setStatus('Looping — press Replay to restart', 'done');
     }]);
+
+    /* The rest before it loops. This needs to be a real step, not just `t +=`:
+       the loop restarts the moment the last step has RUN, so advancing the
+       clock past the final step does nothing at all on its own. */
+    t += V_HOLD;
+    steps.push([t, function () {}]);
 
     return steps;
   }
@@ -1269,10 +1379,20 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
        zero for the same reason — time never runs out, but it never rewinds. */
     if (dt < 0) dt = 0;
     else if (dt > MAX_DT) dt = MAX_DT;
+    if (!demoOnScreen) {
+      /* off screen: keep the frame loop alive but stop the clock, so coming back
+         picks the demo up mid-sentence instead of at the start */
+      last = now;
+      raf = requestAnimationFrame(frame);
+      return;
+    }
     elapsed += dt;
     runDue();
     if (idx >= timeline.length) {
-      raf = null;
+      /* The demo loops. Restarting from replay() rather than from here keeps
+         one owner for the clock, and means the Replay button and the loop take
+         exactly the same path. */
+      replay();
       return;
     }
     raf = requestAnimationFrame(frame);
@@ -1300,8 +1420,8 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 
   function replay() {
     stop();
-    window.clearTimeout(watchTimer);
-    wantWatch = false;
+    window.clearTimeout(demoTimer);
+    wantDemo = false;
     elapsed = 0;
     idx = 0;
     timeline = buildTimeline();
@@ -1318,6 +1438,238 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   editorWrap.addEventListener('click', function () {
     if (running() && !String(window.getSelection())) finish();
   });
+
+  /* ---- the V: the hero margins, filled with characters -------------- */
+  /* The whole area outside the V is populated — not a single line along the
+     diagonal. Each row is a run of characters starting hard against the outer
+     edge of the viewport and stopping at that row's diagonal boundary, so the
+     fields read as solid texture in the corners and the inside of the V is
+     left completely empty for the headline, the copy and the buttons.
+
+     Reveal: top to bottom, and within a row outer edge inward, staggered across
+     ~4s. Each character flickers through printable ASCII for a beat after it
+     arrives, then freezes at low ambient opacity. Runs once. */
+  var V_BAND = 620;        /* must match .hero-v height in CSS */
+  var V_SETTLE = 0.16;     /* final opacity, within the brief's 0.1-0.2 */
+  var V_ROW_PITCH = 21;    /* px between rows */
+  var V_COL_PITCH = 13;    /* px between columns */
+  var V_TOP = 4;           /* % down the band where the first row sits */
+  var V_BOTTOM = 95;       /* % down the band where the last row sits */
+  var V_ROW_STAGGER = 140; /* ms between rows — this is what sets the length */
+  var V_COL_STAGGER = 5;   /* ms between columns within a row */
+  var V_FLICKER_MS = 900;  /* how long one character flickers after arriving */
+  var V_TICK_MS = 60;      /* how often characters swap while flickering */
+  var V_GAP = 28;          /* clear space kept beside the hero copy */
+  var V_MIN = 34;          /* below this much margin, the V stands down */
+  /* How far the diagonal travels inward at its lowest. The fraction is what
+     guarantees clearance from the copy; the caps keep the run a diagonal on a
+     wide screen, and keep it off vertical between roughly 980 and 1120px where
+     a pure fraction collapses it and the V stops reading as a V. */
+  var V_REACH = 0.8;
+  var V_MIN_TRAVEL = 150;
+  var V_MAX_TRAVEL = 430;
+
+  var vBand = document.getElementById('hero-v');
+
+  /* Printable ASCII, the characters a terminal would show. */
+  var V_GLYPHS = (function () {
+    var out = [];
+    for (var c = 33; c < 127; c++) out.push(String.fromCharCode(c));
+    return out;
+  })();
+
+  /* A tiny deterministic PRNG, so the settled field is the same design on every
+     load rather than a new roll of the dice on each refresh. */
+  var vSeed = 0x5f3a91;
+  function vRand() {
+    vSeed ^= vSeed << 13; vSeed ^= vSeed >>> 17; vSeed ^= vSeed << 5;
+    return ((vSeed >>> 0) % 100000) / 100000;
+  }
+  function vPick() { return V_GLYPHS[Math.floor(vRand() * V_GLYPHS.length)]; }
+
+  function vNow() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
+
+  /* The diagonal. Measured, not guessed: the headline is centred and its width
+     changes with the viewport, so a fixed track walks straight into the copy on a
+     narrower screen. Returns the band's left edge and how far the boundary
+     travels inward by the time it reaches the bottom row. */
+  function vTrack() {
+    var inner = document.querySelector('.hero-inner');
+    if (!inner || !vBand) return null;
+    var bandW = vBand.clientWidth;
+    var bandBox = vBand.getBoundingClientRect();
+    /* the widest thing in the hero copy, which is what the field must clear */
+    var copyW = 0;
+    var els = inner.querySelectorAll('.hero-title, .hero-lead, .hero-actions');
+    for (var i = 0; i < els.length; i++) {
+      copyW = Math.max(copyW, els[i].getBoundingClientRect().width);
+    }
+    var centre = bandBox.left + bandW / 2;
+    var margin = (centre - copyW / 2) - bandBox.left - V_GAP;
+    if (margin < V_MIN) return null; /* no margin to work in: stand down */
+    /* The copy's own box, in band coordinates. A single global margin is not
+       enough on its own: at around 1000px the headline wraps onto an extra line,
+       so the copy gets taller at exactly the width where the travel floor is
+       pushing the diagonal furthest in. Rows are clamped against this box
+       individually, which is what makes "never overlaps" a guarantee rather
+       than a consequence of the numbers happening to work out. */
+    var box = { top: 1e9, bottom: -1e9, left: 1e9, right: -1e9 };
+    for (var j = 0; j < els.length; j++) {
+      var r = els[j].getBoundingClientRect();
+      if (r.top < box.top) box.top = r.top;
+      if (r.bottom > box.bottom) box.bottom = r.bottom;
+      if (r.left < box.left) box.left = r.left;
+      if (r.right > box.right) box.right = r.right;
+    }
+    box.top -= bandBox.top; box.bottom -= bandBox.top;
+    box.left -= bandBox.left; box.right -= bandBox.left;
+    return {
+      left: bandBox.left,
+      width: bandW,
+      box: box,
+      travel: Math.max(V_MIN_TRAVEL, Math.min(margin * V_REACH, V_MAX_TRAVEL))
+    };
+  }
+
+  /* How far into the margin this row may be filled, measured from the band's
+     outer edge. Normally that is just the diagonal. But any row whose band
+     overlaps the hero copy is clamped hard against the copy's edge, which is
+     what guarantees clearance at every width — including the narrow ones where
+     the copy is tall and the travel floor would otherwise carry the field into
+     it. Rows clear of the copy keep the full diagonal and open out toward the
+     bottom, so the field is widest where there is genuinely nothing to protect. */
+  function vBoundary(track, side, y, e) {
+    var boundary = V_GAP + e * track.travel;
+    var half = V_ROW_PITCH / 2;
+    var overlapsCopy = y + half > track.box.top && y - half < track.box.bottom;
+    if (!overlapsCopy) return boundary;
+    var limit = side === 0
+      ? track.box.left - V_GAP          /* distance from the left edge to the copy */
+      : track.width - track.box.right - V_GAP;
+    return Math.min(boundary, Math.max(0, limit));
+  }
+
+  /* The full set of cells, in build order. Row-major: every row from the top,
+     and within a row every column from the outer edge inward. Each cell carries
+     the character it will settle on and the moment it arrives. */
+  function vCells(track) {
+    var span = (V_BOTTOM - V_TOP) / 100 * V_BAND;
+    var rows = Math.floor(span / V_ROW_PITCH);
+    var out = [];
+    var n = 0;
+    for (var side = 0; side < 2; side++) {
+      for (var r = 0; r <= rows; r++) {
+        var t = rows < 1 ? 0 : r / rows;
+        var y = V_TOP / 100 * V_BAND + r * V_ROW_PITCH;
+        /* Straight ramp. A smoothstep here reads as a near-vertical edge for the
+           top half and only opens out near the bottom; a constant angle is what
+           actually looks like the arm of a V. */
+        var e = t;
+        var boundary = vBoundary(track, side, y, e);
+        var cols = Math.floor(boundary / V_COL_PITCH);
+        for (var c = 0; c <= cols; c++) {
+          var x = (c + 0.5) * V_COL_PITCH;
+          out.push({
+            x: side === 0 ? track.left + x : track.left + track.width - x,
+            y: y,
+            char: vPick(),
+            at: n * 0  /* placeholder, set below */
+          });
+          n++;
+        }
+      }
+    }
+    /* Arrival order is row-major across both sides: row r of both fields, then
+       row r+1. Delay is derived from the row and column so both fields fill
+       together rather than the left one finishing before the right begins. */
+    var perRow = [];
+    var idx = 0;
+    for (var s2 = 0; s2 < 2; s2++) {
+      for (var r2 = 0; r2 <= rows; r2++) {
+        var t2 = rows < 1 ? 0 : r2 / rows;
+        var e2 = t2;
+        var y2 = V_TOP / 100 * V_BAND + r2 * V_ROW_PITCH;
+        var b2 = vBoundary(track, s2, y2, e2);
+        perRow.push(Math.floor(b2 / V_COL_PITCH) + 1);
+      }
+    }
+    var k = 0;
+    for (var s3 = 0; s3 < 2; s3++) {
+      for (var r3 = 0; r3 <= rows; r3++) {
+        var base = 120 + r3 * V_ROW_STAGGER;
+        var count = perRow[r3];
+        for (var c3 = 0; c3 < count; c3++, k++) {
+          out[k].at = base + c3 * V_COL_STAGGER;
+        }
+      }
+    }
+    return { cells: out, rows: rows };
+  }
+
+  /* Build the field. animate = false rebuilds it in place on a resize, already
+     settled, without replaying four seconds of flicker at someone mid-scroll. */
+  function vBuild(animate) {
+    if (!vBand) return;
+    var track = vTrack();
+    if (!track) { vBand.textContent = ''; return; }
+
+    vSeed = 0x5f3a91;
+    var built = vCells(track);
+    var frag = document.createDocumentFragment();
+
+    for (var i = 0; i < built.cells.length; i++) {
+      var cell = built.cells[i];
+      var el = document.createElement('span');
+      el.className = 'hero-v-c';
+      el.style.left = cell.x.toFixed(1) + 'px';
+      el.style.top = cell.y.toFixed(1) + 'px';
+      el.style.setProperty('--d', cell.at + 'ms');
+      el.textContent = cell.char;
+      frag.appendChild(el);
+      cell.el = el;
+    }
+    vBand.textContent = '';
+    vBand.appendChild(frag);
+
+    var last = built.cells.length
+      ? built.cells[built.cells.length - 1].at + V_FLICKER_MS
+      : 0;
+
+    if (!animate || reduced.matches) {
+      /* CSS parks every cell at V_SETTLE and there is nothing to flicker */
+      for (var j = 0; j < built.cells.length; j++) {
+        built.cells[j].el.classList.add('is-set');
+      }
+      return;
+    }
+
+    /* Flicker. Only the cells that are currently within their flicker window are
+       touched, so the cost tracks how many are mid-reveal rather than how many
+       exist — a full field is far too many nodes to rewrite on every tick. */
+    var start = vNow();
+    var settled = 0;
+    (function tick() {
+      var elapsed = vNow() - start;
+      for (var k = 0; k < built.cells.length; k++) {
+        var cell = built.cells[k];
+        if (cell.done) continue;
+        if (elapsed >= cell.at) cell.el.classList.add('is-set');
+        if (elapsed < cell.at || elapsed > cell.at + V_FLICKER_MS) continue;
+        cell.el.textContent = V_GLYPHS[Math.floor(Math.random() * V_GLYPHS.length)];
+      }
+      if (elapsed > last) {
+        for (var q = 0; q < built.cells.length; q++) {
+          if (!built.cells[q].done) {
+            built.cells[q].el.textContent = built.cells[q].char;
+            built.cells[q].el.classList.add('is-set');
+            built.cells[q].done = true;
+          }
+        }
+        return;
+      }
+      window.setTimeout(tick, V_TICK_MS);
+    })();
+  }
 
   /* ---- the headline: one word after another ------------------------- */
   /* Built into a fragment and swapped in whole, so a failure halfway through
@@ -1344,10 +1696,10 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   /* ---- wiring ------------------------------------------------------ */
   /* Autoplay waits for the demo to be on screen. Started on load, it had
      always finished before anybody scrolled down to it. */
-  function onArrival() {
-    if (!wantWatch) return;
-    wantWatch = false;
-    window.clearTimeout(watchTimer);
+  function onDemoArrival() {
+    if (!wantDemo) return;
+    wantDemo = false;
+    window.clearTimeout(demoTimer);
     autoPlayed = true;
     replay();
   }
@@ -1360,11 +1712,17 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 
   function wire() {
     splitTitle();
+    vBuild(true);
 
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (entries) {
-        if (!entries[0].isIntersecting) return;
-        if (wantWatch) onArrival();
+        var e = entries[0];
+        /* A looping animation that nobody is watching is just a background
+           timer. Held (rather than stopped) off screen, so it resumes where it
+           paused instead of restarting behind the reader's back. */
+        demoOnScreen = e.isIntersecting;
+        if (!e.isIntersecting) return;
+        if (wantDemo) onDemoArrival();
         else if (!autoPlayed) { autoPlayed = true; replay(); }
       }, { threshold: 0.3, rootMargin: '0px 0px -8% 0px' }).observe(demo);
     } else {
@@ -1373,7 +1731,11 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 
     replayBtn.addEventListener('click', function () { replay(); });
 
-    watchBtn.addEventListener('click', function () {
+    /* "See Demo": scroll the notepad window into view, and start the typing the
+       moment it actually arrives rather than at a guessed offset — the distance
+       varies with the viewport, so a fixed delay either cut the first keystrokes
+       off or left a dead gap. */
+    demoBtn.addEventListener('click', function () {
       win.scrollIntoView({ behavior: reduced.matches ? 'auto' : 'smooth', block: 'center' });
       if (reduced.matches || !('IntersectionObserver' in window)) { replay(); return; }
       autoPlayed = true;
@@ -1385,9 +1747,9 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
       }
       /* Otherwise the observer fires on arrival. The timer is only a backstop
          for a scroll the user interrupts. */
-      wantWatch = true;
-      window.clearTimeout(watchTimer);
-      watchTimer = window.setTimeout(onArrival, 2000);
+      wantDemo = true;
+      window.clearTimeout(demoTimer);
+      demoTimer = window.setTimeout(onDemoArrival, 2000);
     });
 
     /* The editor's height is measured from the finished paragraph, so it has
@@ -1398,6 +1760,10 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
       resizeTimer = window.setTimeout(function () {
         if (running()) replay();
         else if (!autoPlayed) fitEditor();
+        /* The V's track is measured from the copy, so a resize can invalidate
+           it. Re-place without re-animating: the characters keep whatever they
+           settled on, they just move to the new track. */
+        vBuild(false);
       }, 200);
     });
 
