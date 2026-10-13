@@ -8,6 +8,8 @@
 
 <script>document.documentElement.classList.add('js');</script>
 
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+
 <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin />
 <link href="https://fonts.cdnfonts.com/css/google-sans" rel="stylesheet" />
 
@@ -242,15 +244,6 @@ kbd {
 .band + .band { border-top: 1px solid var(--border); }
 section[id] { scroll-margin-top: 88px; }
 
-.eyebrow {
-  font-family: var(--font-body);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  line-height: 1;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
 h1 { font-size: clamp(38px, 6.6vw, var(--text-4xl)); line-height: var(--leading-tight); letter-spacing: var(--tracking-display); }
 h2 { font-size: clamp(30px, 4.2vw, var(--text-3xl)); line-height: var(--leading-tight); letter-spacing: var(--tracking-display); }
 h3 { font-size: var(--text-xl); line-height: 1.3; }
@@ -340,6 +333,22 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 }
 .nav-links a:hover { color: var(--accent); text-decoration: none; }
 .nav-cta { text-decoration: none; }
+.nav-side { display: flex; align-items: center; gap: var(--space-2); }
+/* Tasteful GitHub mark: quiet by default, foreground on hover. */
+.gh-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.gh-link:hover { color: var(--fg); background: var(--tint); text-decoration: none; }
+.gh-link svg { width: 18px; height: 18px; fill: currentColor; display: block; }
+.foot-links .gh-link:hover { text-decoration: none; background: var(--tint); }
+.gh-link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
 /* ─── Hero ────────────────────────────────────────────────────────── */
 .hero { position: relative; }
@@ -482,20 +491,26 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 /* One span per finished word. Spans are appended as words complete and are
    never re-rendered, so each keystroke costs the browser one glyph of layout
    instead of a whole paragraph. */
-.w { display: inline-block; white-space: pre; animation: word-in 240ms var(--ease-standard) both; }
+.w { display: inline-block; white-space: pre; animation: word-in 300ms var(--ease-standard) both; }
 .w.is-static { animation: none; opacity: 1; transform: none; }
 @keyframes word-in {
-  from { opacity: 0; transform: translateY(0.24em); }
-  to   { opacity: 1; transform: none; }
+  from { opacity: 0; transform: translateY(0.28em); filter: blur(3px); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
 }
 
 /* The moment the product exists for: the full stop MSP typed, on its own,
    marked for a beat so it cannot be mistaken for another keystroke. */
-.msp { -webkit-box-decoration-break: clone; box-decoration-break: clone; animation: msp-mark 1400ms var(--ease-standard) both; }
+.msp {
+  display: inline-block;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  border-radius: 4px;
+  animation: msp-mark 1600ms var(--ease-standard) both;
+}
 @keyframes msp-mark {
-  0%   { color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 76%); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 80%); }
-  18%  { color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 58%); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 72%); }
-  100% { color: inherit; background: transparent; box-shadow: 0 0 0 3px transparent; }
+  0%   { color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 72%); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 78%); transform: scale(1.5); }
+  16%  { color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 52%); box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent), transparent 68%); transform: scale(1.18); }
+  38%  { color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 62%); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 74%); transform: scale(1); }
+  100% { color: inherit; background: transparent; box-shadow: 0 0 0 3px transparent; transform: none; }
 }
 
 .caret {
@@ -513,6 +528,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 
 /* the space bar and its neighbours */
 .keys {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -521,6 +537,27 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   border-top: 1px solid var(--border-soft);
   background: var(--surface);
 }
+/* Floating coachmark: tells the viewer what to do with the key, then gets
+   out of the way. Text is set by the script per beat. */
+.tap-tip {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translate(-50%, 4px);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--fg-2);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms var(--ease-standard), transform 180ms var(--ease-standard), background-color 180ms var(--ease-standard);
+}
+.tap-tip.is-show { opacity: 1; transform: translate(-50%, 0); }
+.tap-tip.is-hit { background: var(--accent); }
 .key-line { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .key-ghost {
   display: grid;
@@ -576,16 +613,24 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   opacity: 0;
   pointer-events: none;
 }
-.spacebar.is-inviting::after { animation: key-invite 620ms var(--ease-standard) 2; }
+.spacebar.is-inviting::after { animation: key-invite 560ms var(--ease-standard) 3; }
 @keyframes key-invite {
-  0%   { opacity: 0; transform: scale(1); }
+  0%   { opacity: 0; transform: scale(0.99); }
   35%  { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.04); }
+  100% { opacity: 0; transform: scale(1.05); }
 }
 .spacebar.is-armed { box-shadow: var(--elev-raised), 0 0 0 2px color-mix(in oklab, var(--accent), transparent 45%); }
 .spacebar.is-armed .cap { color: var(--fg-2); font-weight: 600; }
-.spacebar.is-hit { box-shadow: var(--elev-raised), 0 0 0 3px color-mix(in oklab, var(--accent), transparent 35%); }
+.spacebar.is-hit { box-shadow: var(--elev-raised), 0 0 0 3px color-mix(in oklab, var(--accent), transparent 30%); }
 .spacebar.is-hit .cap { color: var(--accent); font-weight: 600; }
+/* After the run lands, the Replay button nudges once so the next step is
+   obvious — then it rests. Removed the moment a new run starts. */
+#replay-btn.is-ready { animation: replay-nudge 900ms var(--ease-standard) 1; }
+@keyframes replay-nudge {
+  0%   { box-shadow: var(--elev-ring); transform: scale(1); }
+  35%  { box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent), transparent 72%); transform: scale(1.06); }
+  100% { box-shadow: var(--elev-ring); transform: scale(1); }
+}
 .ripple {
   position: absolute;
   inset: 0;
@@ -636,17 +681,19 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 .step-num { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600; line-height: 1; letter-spacing: var(--tracking-display); color: var(--muted); }
 .step p { color: var(--text-secondary); max-width: 36ch; }
 
-/* ─── Gesture rows ────────────────────────────────────────────────── */
-.gestures { margin-block-start: var(--section-y-desktop); border-top: 1px solid var(--border); }
+/* ─── Gesture cards ───────────────────────────────────────────────── */
+.gestures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); margin-block-start: var(--section-y-desktop); }
 .gesture {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1.25fr) minmax(0, 1.4fr);
-  gap: var(--space-6);
-  align-items: start;
-  padding-block: var(--space-6);
-  border-bottom: 1px solid var(--border);
+  gap: var(--space-3);
+  align-content: start;
+  padding: var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--elev-raised);
 }
 .gesture-key {
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -660,29 +707,13 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   white-space: nowrap;
 }
 .gesture h3 { font-size: var(--text-lg); }
-.gesture p { margin-block-start: var(--space-2); color: var(--text-secondary); }
-.gesture-native { display: block; margin-block-start: var(--space-2); font-size: var(--text-sm); color: var(--text-secondary); }
-.gesture-native > * { display: block; }
-
-/* the rows are a comparison, so the three columns get named once at the top */
-.gesture-head {
-  display: grid;
-  grid-template-columns: 76px minmax(0, 1.25fr) minmax(0, 1.4fr);
-  gap: var(--space-6);
-  padding-block: var(--space-3);
-  border-bottom: 1px solid var(--border);
-  font-size: var(--text-xs);
+.gesture p { color: var(--text-secondary); }
+.gesture-vs {
+  margin-block-start: var(--space-3);
+  padding-block-start: var(--space-3);
+  border-top: 1px solid var(--border-soft);
+  font-size: var(--text-sm);
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-.gesture-native-tag {
-  display: none;
-  margin-block-end: var(--space-1);
-  font-size: var(--text-xs);
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 /* ─── Download ────────────────────────────────────────────────────── */
@@ -741,9 +772,9 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
 .reveal-pending .reveal.is-in { opacity: 1; transform: none; }
 .steps .step:nth-child(2) { --reveal-delay: var(--stagger); }
 .steps .step:nth-child(3) { --reveal-delay: calc(var(--stagger) * 2); }
-.gestures .gesture:nth-child(2) { --reveal-delay: 40ms; }
-.gestures .gesture:nth-child(3) { --reveal-delay: 80ms; }
-.gestures .gesture:nth-child(4) { --reveal-delay: 120ms; }
+.gestures .gesture:nth-child(2) { --reveal-delay: var(--stagger); }
+.gestures .gesture:nth-child(3) { --reveal-delay: calc(var(--stagger) * 2); }
+.gestures .gesture:nth-child(4) { --reveal-delay: calc(var(--stagger) * 3); }
 .build:nth-child(2) { --reveal-delay: 50ms; }
 
 /* ─── Hero headline: words rise, one after another ────────────────── */
@@ -771,10 +802,6 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   .band { padding-block: var(--section-y-tablet); }
   .steps { grid-template-columns: 1fr 1fr; }
   .steps .step:nth-child(3) { grid-column: span 2; --reveal-delay: 0ms; }
-  .gesture { grid-template-columns: 68px minmax(0, 1fr); }
-  .gesture-native-col { grid-column: 2; }
-  .gesture-head { display: none; }
-  .gesture-native-tag { display: block; }
 }
 @media (max-width: 767px) {
   .container, .nav-inner { padding-inline: var(--container-gutter-phone); }
@@ -782,6 +809,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   .nav-links { display: none; }
   .steps { grid-template-columns: 1fr; }
   .steps .step:nth-child(3) { grid-column: auto; }
+  .gestures { grid-template-columns: 1fr; }
   .demo { margin-block-start: var(--space-8); }
   /* The clamp already shrinks the document as the viewport narrows; these
      overrides only loosen the padding around it. */
@@ -791,8 +819,6 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   .build-actions { width: 100%; }
 }
 @media (max-width: 560px) {
-  .gesture { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
-  .gesture-native-col { grid-column: auto; }
   .hero-actions .btn { width: 100%; }
   .foot-inner { flex-direction: column; align-items: flex-start; }
   .key-ghost { width: 44px; height: 38px; }
@@ -809,6 +835,8 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   .caret { animation: none; }
   .win.is-done .caret { opacity: 0.3; }
   .ripple { display: none; }
+  .tap-tip { display: none; }
+  #replay-btn.is-ready { animation: none; }
   .spacebar::after { display: none; }
   .w, .msp { animation: none; opacity: 1; transform: none; }
   .msp { background: transparent; box-shadow: none; color: inherit; }
@@ -831,7 +859,10 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
         <li><a href="#gestures">How It Works</a></li>
       </ul>
     </nav>
-    <a class="btn btn-primary nav-cta" href="#download">Download</a>
+    <span class="nav-side">
+      <a class="gh-link" href="https://github.com/zakagain/MSP" aria-label="MSP on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a>
+      <a class="btn btn-primary nav-cta" href="#download">Download</a>
+    </span>
   </div>
 </header>
 
@@ -846,7 +877,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
          simply stays empty. -->
     <div class="hero-v" id="hero-v" aria-hidden="true"></div>
     <div class="container hero-inner">
-      <h1 class="hero-title" id="hero-title">Where Windows and Mac finally collide.</h1>
+      <h1 class="hero-title" id="hero-title">Type at the speed of thought.</h1>
       <p class="lead hero-lead reveal">
         MSP watches the space bar. Tap it twice at the end of a sentence and it
         types the period for you, then adds the space — the trick your phone
@@ -883,6 +914,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
           </div>
 
           <div class="keys" aria-hidden="true">
+            <span class="tap-tip" id="tap-tip">tap space</span>
             <div class="key-line">
               <span class="key-ghost">alt</span>
               <span class="spacebar" id="spacebar">
@@ -903,15 +935,15 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
             <span id="demo-state">Ready</span>
           </p>
           <p class="sr-only">
-            Animation: a window types the words "Tap space twice". The space bar is
-            then tapped twice — the second tap is the one MSP catches — and MSP
-            types the full stop and the following space itself. The next sentence
-            continues typing without the hands leaving the keyboard, and the
-            animation repeats.
+            Animation: a window types the words "Tap space twice", pauses, then the
+            space bar is tapped twice fast and MSP types the full stop and the
+            following space itself. The next sentence continues without the hands
+            leaving the keyboard, and at its end the space bar is tapped twice fast
+            again for the final full stop.
           </p>
         </div>
         <p class="demo-caption" id="demo-hint">
-          <span>A sentence gets typed, the space bar is tapped twice, and MSP types the full stop for you. It loops — press Replay to restart it, or click the window to stop.</span>
+          <span>Each sentence gets typed, the space bar is tapped twice fast, and MSP types the full stop for you. Press Replay to watch it again, or click the window to skip to the end.</span>
         </p>
       </div>
     </div>
@@ -921,8 +953,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   <section class="band" id="how">
     <div class="container">
       <div class="chapter-head reveal">
-        <p class="eyebrow">How it works</p>
-        <h2>Type like you always do.</h2>
+        <h2>Instinct, installed.</h2>
         <p class="lead">
           MSP only watches one key. Everything else you press reaches the app
           exactly as Windows delivers it.
@@ -934,24 +965,22 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
           <span class="step-num">01</span>
           <h3>Write the sentence.</h3>
           <p>
-            Type to the end of a thought the way you already do. One tap of the
-            space bar is still a plain space.
+            Type to the end of a thought. Stop there — one tap is still just
+            a space.
           </p>
         </li>
         <li class="step reveal">
           <span class="step-num">02</span>
-          <h3>Tap space twice.</h3>
+          <h3>Tap tap.</h3>
           <p>
-            MSP catches the second tap and types the period where the full stop
-            belongs, then adds the space after it.
+            Two fast taps. MSP lands the period and the trailing space.
           </p>
         </li>
         <li class="step reveal">
           <span class="step-num">03</span>
-          <h3>Keep writing.</h3>
+          <h3>Keep going.</h3>
           <p>
-            The next sentence starts the moment your hands do. The app stays in
-            the notification area until you need it.
+            No pause, no reaching. The next sentence is already underway.
           </p>
         </li>
       </ol>
@@ -962,84 +991,45 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   <section class="band" id="gestures">
     <div class="container">
       <div class="chapter-head reveal">
-        <p class="eyebrow">What it restores</p>
-        <h2>One gesture, done properly.</h2>
+        <h2>Tap tap. Done.</h2>
         <p class="lead">
-          MSP watches the space bar and nothing else. Here is the whole of it —
-          and the Windows habit each part replaces.
+          Four small payoffs. Zero new habits.
         </p>
       </div>
 
       <ul class="gestures">
-        <li class="gesture-head">
-          <span>Gesture</span>
-          <span>What MSP does</span>
-          <span>On Windows today</span>
-        </li>
         <li class="gesture reveal">
           <span class="gesture-key">space ×2</span>
-          <div>
-            <h3>A full stop, where the sentence ends.</h3>
-            <p>
-              The second tap is the trigger, and the period lands in that exact
-              position — the end of what you have just typed.
-            </p>
-          </div>
-          <div class="gesture-native-col">
-            <span class="gesture-native">
-              <span class="gesture-native-tag">On Windows today</span>
-              <span>No equivalent exists. You reach for <kbd>.</kbd> on the top row, or the numpad <kbd>.</kbd></span>
-            </span>
-          </div>
+          <h3>No more reaching.</h3>
+          <p>
+            The period lands where the sentence ends. Your hands never leave
+            the letters.
+          </p>
+          <p class="gesture-vs">Today: <kbd>.</kbd> on the top row, or the numpad <kbd>.</kbd></p>
         </li>
         <li class="gesture reveal">
           <span class="gesture-key">. + space</span>
-          <div>
-            <h3>The trailing space arrives with it.</h3>
-            <p>
-              The full stop and the space after it are one keystroke, so the
-              next sentence starts without a second reach.
-            </p>
-          </div>
-          <div class="gesture-native-col">
-            <span class="gesture-native">
-              <span class="gesture-native-tag">On Windows today</span>
-              <span>Two separate keys: <kbd>.</kbd> then <kbd>Space</kbd></span>
-            </span>
-          </div>
+          <h3>Next sentence, free.</h3>
+          <p>
+            The trailing space comes with the period. Rhythm unbroken.
+          </p>
+          <p class="gesture-vs">Today: <kbd>.</kbd> then <kbd>Space</kbd> — two reaches</p>
         </li>
         <li class="gesture reveal">
           <span class="gesture-key">space ×1</span>
-          <div>
-            <h3>One tap is still a space.</h3>
-            <p>
-              Only a second tap inside a short window counts. Every other key
-              you press reaches Windows exactly as it does today.
-            </p>
-          </div>
-          <div class="gesture-native-col">
-            <span class="gesture-native">
-              <span class="gesture-native-tag">On Windows today</span>
-              <span>Unchanged — <kbd>Space</kbd> still means <kbd>Space</kbd></span>
-            </span>
-          </div>
+          <h3>Safe by default.</h3>
+          <p>
+            Single taps stay spaces. Only a fast second tap fires.
+          </p>
+          <p class="gesture-vs">Today: unchanged — <kbd>Space</kbd> still means <kbd>Space</kbd></p>
         </li>
         <li class="gesture reveal">
           <span class="gesture-key">any app</span>
-          <div>
-            <h3>It works everywhere.</h3>
-            <p>
-              MSP sits at the keyboard, not inside one program. Word, Notepad, a
-              browser, a terminal, your IDE — the gesture is already there in
-              every one of them, with nothing to install per app.
-            </p>
-          </div>
-          <div class="gesture-native-col">
-            <span class="gesture-native">
-              <span class="gesture-native-tag">On Windows today</span>
-              <span>The full stop lives on one key, and you have to find it in every app</span>
-            </span>
-          </div>
+          <h3>Everywhere you type.</h3>
+          <p>
+            One watcher at the keyboard — Word, browser, terminal, IDE.
+          </p>
+          <p class="gesture-vs">Today: hunt for the full stop in every app</p>
         </li>
       </ul>
     </div>
@@ -1049,7 +1039,6 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   <section class="band" id="download">
     <div class="container download-inner">
       <div class="reveal">
-        <p class="eyebrow">Get MSP</p>
         <h2>Your thumbs already know it.</h2>
         <p class="lead">
           Unzip it, run MSP, and tap the space bar twice. There is nothing to
@@ -1098,6 +1087,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   <div class="container foot-inner">
     <a class="nav-brand" href="#top">MSP<span class="brand-tag">for Windows</span></a>
     <div class="foot-links">
+      <a class="gh-link" href="https://github.com/zakagain/MSP" aria-label="MSP on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a>
       <a href="#how">Features</a>
       <a href="#gestures">How It Works</a>
       <button type="button" id="to-top">Back to top</button>
@@ -1123,11 +1113,12 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
   var replayBtn = document.getElementById('replay-btn');
   var demoBtn = document.getElementById('demo-btn');
   var heroTitle = document.getElementById('hero-title');
+  var tapTip = document.getElementById('tap-tip');
 
   var autoPlayed = false;   /* has the demo run, or been asked to? */
   var wantDemo = false;     /* replay on arrival, rather than on visibility */
   var demoTimer = 0;
-  var demoOnScreen = true;  /* gates the loop while the window is off screen */
+  var demoOnScreen = true;  /* gates the run while the window is off screen */
 
   /* The script. Short on purpose: the whole point is the period appearing in one
      place, and a paragraph that takes ten seconds to arrive buries it.
@@ -1137,19 +1128,19 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
      is the behaviour being demonstrated. Typing it as "And" in the source would
      make the demo claim something the code never does. */
   var PART_ONE = 'Tap space twice';
-  var TAIL = 'and watch the period appear.';
+  var TAIL = 'and watch the period appear';
   var FULL = 'Tap space twice. And watch the period appear.';
 
-  /* Cadence. A flat 22ms per character reads as a machine; what makes typing
-     look like typing is the unevenness — the word gaps, the breath after a
-     comma, the last character of a sentence landing heavier than the rest. */
-  var CHAR_MS = 17;        /* base beat between characters */
-  var CHAR_JITTER = 6;     /* wobble either side of it */
-  var WORD_MS = 14;        /* the gap where a space is typed */
-  var COMMA_MS = 90;       /* a breath after a comma */
-  var SENTENCE_MS = 150;   /* a beat on the last character of a sentence */
+  /* Cadence. A flat, fast beat reads as a machine; what makes typing look
+     like typing is the unevenness — the word gaps, the breath after a
+     comma, the last character of a sentence landing heavier than the rest.
+     Slowed from the old 17ms so the words can actually be read as they land. */
+  var CHAR_MS = 46;        /* base beat between characters */
+  var CHAR_JITTER = 18;    /* wobble either side of it */
+  var WORD_MS = 72;        /* the gap where a space is typed */
+  var COMMA_MS = 150;      /* a breath after a comma */
+  var SENTENCE_MS = 260;   /* a beat on the last character of a sentence */
   var SEED = 0x2f6e2b1;    /* fixed, so every replay is identical */
-  var V_HOLD = 2600;      /* how long the finished line rests before looping */
 
   /* ---- the text buffer ---------------------------------------------- */
   /* Text is only ever APPENDED. The previous version rebuilt the whole
@@ -1260,6 +1251,30 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
     spacebar.classList.remove('is-down', 'is-lit', 'is-armed', 'is-hit', 'is-inviting');
   }
 
+  function showTip(text, hit) {
+    if (!tapTip) return;
+    tapTip.textContent = text;
+    tapTip.classList.toggle('is-hit', !!hit);
+    tapTip.classList.add('is-show');
+  }
+
+  function hideTip() {
+    if (!tapTip) return;
+    tapTip.classList.remove('is-show', 'is-hit');
+  }
+
+  /* Undo the visible space the first tap typed, so the second tap visibly
+     converts "word " into "word. " — the swap is the whole trick. */
+  function eraseLastSpace() {
+    var n = textEl.lastChild;
+    if (n && n.nodeType === 3) {
+      if (n.data.length && n.data.charAt(n.data.length - 1) === ' ') {
+        n.data = n.data.slice(0, -1);
+        if (!n.data) textEl.removeChild(n);
+      }
+    }
+  }
+
   /* ---- the timeline ------------------------------------------------ */
   var rng = SEED;
   function wobble() {
@@ -1285,74 +1300,114 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
     var steps = [];
     var t = 0;
 
+    /* Fast double-tap rhythm: key down, brief up, second down. This is one
+       quick "tap-tap", not two separate presses with commentary between. */
+    var TAP_DOWN = 95;
+    var TAP_GAP = 135;
+    var END_PAUSE = 480; /* the slight pause at the end of a sentence */
+
     steps.push([0, function () {
       resetText();
       rng = SEED;
       win.classList.remove('is-done');
+      replayBtn.classList.remove('is-ready');
       clearKey();
+      hideTip();
       setStatus('Typing…', 'busy');
     }]);
 
-    /* the sentence gets written */
-    /* Step 1 — the first sentence is typed by hand. */
-    t = 420;
+    /* Beat 0 — the first sentence, typed by hand. */
+    t = 650;
     t = typeOut(steps, t, PART_ONE);
-    t += 320;
 
-    /* Step 2 — the sentence is over. Point at the key, then take two taps. */
+    /* Slight pause at the end of the sentence, then tap-tap, fast. */
+    t += END_PAUSE;
     steps.push([t, function () {
-      spacebar.classList.add('is-inviting');
-      setStatus('Sentence ends — tap space twice', 'busy');
-    }]);
-    t += 620;
-    steps.push([t, function () {
-      spacebar.classList.remove('is-inviting');
       spacebar.classList.add('is-armed');
+      showTip('tap tap', false);
+      setStatus('Sentence ends — tap tap', 'busy');
     }]);
+    t += 260;
 
     steps.push([t, function () {
       tapDown(0);
-      setStatus('One tap — still just a space', 'busy');
+      typeChar(' ');
     }]);
-    t += 88;
+    t += TAP_DOWN;
     steps.push([t, function () { tapUp(); }]);
-    t += 84;
+    t += TAP_GAP;
 
     steps.push([t, function () {
       tapDown(1);
       spacebar.classList.remove('is-armed');
       spacebar.classList.add('is-hit');
-      setStatus('Two taps — MSP has it', 'hit');
+      eraseLastSpace();
+      showTip('MSP got it', true);
+      setStatus('MSP steps in', 'hit');
     }]);
-    t += 88;
+    t += TAP_DOWN;
     steps.push([t, function () { tapUp(); }]);
     t += 200;
 
-    /* Step 3 — the full stop appears, and the next letter capitalises itself. */
+    /* The full stop pops in, marked, and the trailing space follows. */
     steps.push([t, function () {
       typeChar('.', 'msp');
       setStatus('MSP typed the full stop', 'done');
     }]);
-    t += 170;
-    steps.push([t, function () { typeChar(' '); }]);
-    t += 140;
+    t += 340;
+    steps.push([t, function () { typeChar(' '); hideTip(); }]);
+    t += 380;
 
-    /* Step 4 — the rest of the line, straight through. */
+    /* Beat 1 — the rest of the line, straight through. */
     t = typeOut(steps, t, TAIL);
-    t += 520;
 
-    /* Step 5 — hold, then run it again. */
+    /* Slight pause at the end again, then tap-tap for the final stop. */
+    t += END_PAUSE;
+    steps.push([t, function () {
+      spacebar.classList.add('is-armed');
+      showTip('tap tap', false);
+      setStatus('Again — tap tap', 'busy');
+    }]);
+    t += 260;
+
+    steps.push([t, function () {
+      tapDown(0);
+      typeChar(' ');
+    }]);
+    t += TAP_DOWN;
+    steps.push([t, function () { tapUp(); }]);
+    t += TAP_GAP;
+
+    steps.push([t, function () {
+      tapDown(1);
+      spacebar.classList.remove('is-armed');
+      spacebar.classList.add('is-hit');
+      eraseLastSpace();
+      showTip('MSP got it', true);
+      setStatus('MSP steps in', 'hit');
+    }]);
+    t += TAP_DOWN;
+    steps.push([t, function () { tapUp(); }]);
+    t += 200;
+
+    steps.push([t, function () {
+      typeChar('.', 'msp');
+      hideTip();
+      setStatus('MSP typed the full stop', 'done');
+    }]);
+    t += 800;
+
+    /* Settle and hold. No loop: this is the final frame until the
+       reader asks for another viewing via Replay. */
     steps.push([t, function () {
       win.classList.add('is-done');
       clearKey();
-      setStatus('Looping — press Replay to restart', 'done');
+      hideTip();
+      setStatus('Done — press Replay to watch it again', 'done');
+      replayBtn.classList.remove('is-ready');
+      void replayBtn.offsetWidth;
+      replayBtn.classList.add('is-ready');
     }]);
-
-    /* The rest before it loops. This needs to be a real step, not just `t +=`:
-       the loop restarts the moment the last step has RUN, so advancing the
-       clock past the final step does nothing at all on its own. */
-    t += V_HOLD;
-    steps.push([t, function () {}]);
 
     return steps;
   }
@@ -1394,10 +1449,9 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
     elapsed += dt;
     runDue();
     if (idx >= timeline.length) {
-      /* The demo loops. Restarting from replay() rather than from here keeps
-         one owner for the clock, and means the Replay button and the loop take
-         exactly the same path. */
-      replay();
+      /* Finished: park on the final frame. Only an explicit Replay (or See
+         Demo) starts another run — never the clock itself. */
+      stop();
       return;
     }
     raf = requestAnimationFrame(frame);
@@ -1419,8 +1473,12 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
     idx = timeline.length;
     renderAll();
     clearKey();
+    hideTip();
     win.classList.add('is-done');
     setStatus('Done — press Replay to watch it again', 'done');
+    replayBtn.classList.remove('is-ready');
+    void replayBtn.offsetWidth;
+    replayBtn.classList.add('is-ready');
   }
 
   function replay() {
@@ -1886,7 +1944,7 @@ h3 { font-size: var(--text-xl); line-height: 1.3; }
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (entries) {
         var e = entries[0];
-        /* A looping animation that nobody is watching is just a background
+        /* An animation that nobody is watching is just a background
            timer. Held (rather than stopped) off screen, so it resumes where it
            paused instead of restarting behind the reader's back. */
         demoOnScreen = e.isIntersecting;
