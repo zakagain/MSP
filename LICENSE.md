@@ -20,7 +20,7 @@ Any use of this software or any portion of its contents that has been explicitly
 
 The attribution must state:
 
-> Copyright © 2026 Zak. All rights reserved.
+> Copyright © 2026 zakagain. All rights reserved.
 
 Attribution must not be removed, obscured, or altered without the explicit written permission of the Copyright Holder.
 
