@@ -12,20 +12,7 @@ A lightweight AutoHotkey v2 script that brings the macOS/iOS double-tap spacebar
 
 ## Installation & Usage
 
-Choose one of the two methods below to get started:
-
-### Method 1: Run the Compiled Executable (Easiest)
-*No installation or AutoHotkey setup required.*
-1. Go to the **Releases** section of this GitHub repository.
-2. Download the latest `mac-space-period.exe` file.
-3. Double-click the downloaded file to run it.
-4. (Optional but reccomended:) Press `Win + R` and type in `shell:startup` and drag `mac-space-period.exe` into that folder to ensure it starts on boot.
-
-### Method 2: Run the Raw Script (Recommended)
-*Perfect if you want to inspect, audit, or customize the code yourself.*
-1. Download and install [AutoHotkey v2](https://www.autohotkey.com/).
-2. Download the `mac-space-period.ahk` file from this repository.
-3. Double-click the `.ahk` file to run it.
+For both the compiled `.exe` and raw `.ahk` download the `.zip` file from releases, or [here](https://github.com/zakagain/MSP/releases/download/v0.1.0/MSP-v0.1.0.zip)
 
 ### Run on Startup (Optional but highly recommended)
 
